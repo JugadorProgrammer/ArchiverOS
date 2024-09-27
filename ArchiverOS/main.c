@@ -10,27 +10,6 @@
 
 const char* delemiter = "\r\n";
 
-const char* plus(const char* string1, const char* string2)
-{
-    size_t size1 = sizeof(string1);
-    size_t size2 = sizeof(string2);
-
-    char* result = malloc(size1 + size2);
-
-    int i = 0;
-    for(; i < size1; ++i)
-    {
-        result[i] = string1[i];
-    }
-
-    for(int j = 0; i < size1; ++i, ++j)
-    {
-        result[i] = string2[j];
-    }
-
-    return result;
-}
-
 long get_data_file_length(FILE * file)
 {
     if(!file)
@@ -47,7 +26,7 @@ long get_data_file_length(FILE * file)
     return length;
 }
 
-void archive_directory(const char *directory_path, FILE *archive, const char* prev_dir)
+void archive_directory(const char *directory_path, FILE *archive, long directory_path_length)
 {
     DIR *dir = opendir(directory_path);
     if (dir == NULL) {
@@ -55,20 +34,15 @@ void archive_directory(const char *directory_path, FILE *archive, const char* pr
         return;
     }
 
-    size_t bytes_count;
     char* buffer = NULL;
-
     struct dirent *entry;
+
     while ((entry = readdir(dir)) != NULL)
     {
-        if (strcmp(entry->d_name, ".") == 0
-            || strcmp(entry->d_name, "..") == 0)
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
         {
-            continue; // Пропускаем текущую и родительскую директории
+            continue;
         }
-
-        printf("%d - %s [%d] %d\n",
-               entry->d_ino, entry->d_name, entry->d_type, entry->d_reclen);
 
         char filepath[MAX_FILENAME_LENGTH];
         snprintf(filepath, sizeof(filepath), "%s/%s", directory_path, entry->d_name);
@@ -84,42 +58,45 @@ void archive_directory(const char *directory_path, FILE *archive, const char* pr
         {
             printf("Start processing %s\n", entry->d_name);
 
-            char* temp = (prev_dir ? plus(prev_dir, entry->d_name): entry->d_name);
+            // write delimiter size
+            fprintf(archive, "%ld", sizeof(delemiter));
+            // write delemiter
+            fwrite(delemiter, sizeof(delemiter), 1, archive);
 
-            archive_directory(filepath, archive, temp);
+            // write
+            fprintf(archive, "%ld", strlen(entry->d_name));
+            // write
+            fwrite(entry->d_name, strlen(entry->d_name), 1, archive);
+
+            archive_directory(filepath, archive, directory_path_length);
         }
         else if (S_ISREG(statbuf.st_mode))
         {
             FILE* file = fopen(filepath, "rb");
+            long short_file_path = strlen(filepath + directory_path_length);
             long length = get_data_file_length(file);
             buffer = malloc(length);
 
+            // read data from file
             fread(buffer, 1, length, file);
-            // write delemiter to file
+            // write delimiter size
+            fprintf(archive, "%ld", sizeof(delemiter));
+            // write delemiter
             fwrite(delemiter, sizeof(delemiter), 1, archive);
+            // write file length
+            fprintf(archive, "%ld", short_file_path);
 
-            // write count of file's data
-            // fwrite(length, sizeof(delemiter), 1, archive);
+            printf("File: %s\n", filepath + directory_path_length);
 
-            char* file_path = plus((prev_dir ? plus(prev_dir, entry->d_name): entry->d_name), entry->d_name);
-            //fwrite(archive, ,);
-            // write file path
-            //fwrite(filepath, 1, sizeof(filepath), archive);
-            fwrite(file_path, 1, sizeof(file_path), archive);
+            // write file
+            fwrite(filepath + directory_path_length, 1, short_file_path, archive);
             // write count of file's data
             fprintf(archive, "%ld", length);
+            // write data to archive
+            fwrite(buffer, 1, length, archive);
 
-            while ((bytes_count = fread(buffer, 1, sizeof(buffer), file)) > 0)
-            {
-                if (fwrite(buffer, 1, bytes_count, archive) != bytes_count)
-                {
-                    fprintf(stderr, "Error writing to output file"); //ошибка записи в выходной
-                    break;
-                }
-            }
-
-            free(buffer);
             fclose(file);
+            free(buffer);
         }
     }
 
@@ -144,7 +121,6 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    archive_directory(directory_path, archive, NULL);
-    //fprintf(stdout, "Ok");
+    archive_directory(directory_path, archive, strlen(directory_path));
     return 0;
 }
