@@ -1,0 +1,79 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"hasInstallRule" : true,
+					"jsonFile" : "directory-.-Debug-41330b57f74bf7c6b2c6.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "ArchiveBack",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "ArchiveBack::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ArchiveBack-Debug-712beade3313cdd0c14f.json",
+					"name" : "ArchiveBack",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ArchiveBack_autogen::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ArchiveBack_autogen-Debug-56c348abf13207cdd0a7.json",
+					"name" : "ArchiveBack_autogen",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "ArchiveBack_autogen_timestamp_deps::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ArchiveBack_autogen_timestamp_deps-Debug-1fcbfe2d6c6b1eb3fef7.json",
+					"name" : "ArchiveBack_autogen_timestamp_deps",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/ilya/Documents/Projects/Qt/ArchiverOS/ArchiveBack/build/Desktop-Debug",
+		"source" : "/home/ilya/Documents/Projects/Qt/ArchiverOS/ArchiveBack"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 6
+	}
+}
