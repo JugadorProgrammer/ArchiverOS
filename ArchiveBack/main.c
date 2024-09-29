@@ -8,9 +8,22 @@
 #define MAX_FILENAME_LENGTH 256
 
 const size_t size_of_char = sizeof(char);
-// const char data_delemiter = '/';
-const char file_mode = 'f';
-const char dir_mode = 'd';
+
+void print_permissions(mode_t mode)
+{
+    printf("Permissions: ");
+    printf((S_ISDIR(mode)) ? "d" : "-"); // is dir
+    printf((mode & S_IRUSR) ? "r" : "-"); // owner read
+    printf((mode & S_IWUSR) ? "w" : "-"); // owner write
+    printf((mode & S_IXUSR) ? "x" : "-"); // owner execute
+    printf((mode & S_IRGRP) ? "r" : "-"); // group read
+    printf((mode & S_IWGRP) ? "w" : "-"); // group write
+    printf((mode & S_IXGRP) ? "x" : "-"); // group execute
+    printf((mode & S_IROTH) ? "r" : "-"); // others read
+    printf((mode & S_IWOTH) ? "w" : "-"); // others write
+    printf((mode & S_IXOTH) ? "x" : "-"); // others execute
+    printf(" ");
+}
 
 char* concatanation(char *s1, char *s2)
 {
@@ -39,25 +52,24 @@ void archive_directory_back(const char *directory_path, FILE *archive)
         printf("Failed to open directory: %s\n", directory_path);
         return;
     }
-
-    int name_size;
-    long size;
-    long file_data_size;
-    char mode;
-    char data_delemiter;
     closedir(dir);
 
-    while(1)
+    int mode_size;
+    long size;
+    mode_t mode;
+    char data_delemiter;
+    do
     {
         // read mode
-        mode = fgetc(archive);
-        //read size
-        name_size = fscanf(archive, "%ld", &size);
-        printf("NAME_SIZE: %d\n", name_size);
-        if(name_size == -1)
+        mode_size = fscanf(archive, "%o", &mode);
+        if(mode_size == -1)
         {
-            return;
+            continue;
         }
+        print_permissions(mode);
+        // skip delemiter
+        data_delemiter = fgetc(archive);
+        fscanf(archive, "%ld", &size);
 
         char *buffer = malloc(size);
         // skip delemiter
@@ -69,57 +81,67 @@ void archive_directory_back(const char *directory_path, FILE *archive)
             return;
         }
 
-        printf("Buffer: %s\n", buffer);
+        // cut buffer string
+        buffer[size] = '\0';
         char* full_path = concatanation(directory_path, buffer);
 
-        if (mode == file_mode)
+        if (!S_ISDIR(mode))
         {
-            FILE *file = fopen(full_path, "wb");
-
+            FILE* file = fopen(full_path, "wb");
             if (!file)
             {
-                printf("Failed to create file: %s\n", full_path);
+                printf("Failed to open file: %s\n", full_path);
                 free(full_path);
                 free(buffer);
                 return;
             }
 
+            printf("File: %s ", buffer);
+            // defining a file descriptor associated with a data stream
+            int fp = fileno(file);
+
+            if(fchmod(fp, mode))
+            {
+                printf("Failed to set permissions file: %s", full_path);
+                fclose(file);
+                free(buffer);
+                free(full_path);
+                return;
+            }
             free(buffer);
 
             // size data
-            fscanf(archive, "%ld", &file_data_size);
-            buffer = malloc(file_data_size);
+            fscanf(archive, "%ld", &size);
+            buffer = malloc(size);
+            printf("SIZE: %d\n", size);
 
             // skip delemiter
             data_delemiter = fgetc(archive);
-
             // read data from file
-            fread(buffer, size_of_char, file_data_size, archive);
+            fread(buffer, size_of_char, size, archive);
+
             // write data to file
-            fwrite(buffer, size_of_char, file_data_size, file);
+            fwrite(buffer, size_of_char, size, file);
             fclose(file);
         }
-        else if(mode == dir_mode)
+        else
         {
-            if(!mkdir(full_path, 0777))
+            if(!mkdir(full_path, mode))
             {
-                printf("Make dir: %s\n", full_path);
+                printf("Directory : %s\n", full_path);
             }
             else
             {
                 printf("Filed to make dir: %s\n", full_path);
-                size = 0; // for exit
+                free(full_path);
+                free(buffer);
+                return;
             }
-        }
-        else
-        {
-            printf("Incorrect mode: %s", mode);
-            return;
         }
 
         free(full_path);
         free(buffer);
-    }
+    }while(mode_size != -1);
 }
 
 int main(int argc, char **argv)
